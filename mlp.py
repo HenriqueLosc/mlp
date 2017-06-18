@@ -117,24 +117,82 @@ def pca(x):
     print("DEBUG B")
     c = np.asmatrix(b) * np.transpose(np.asmatrix(b))
     d, v = np.linalg.eig(c)
+    np.real(d)
+    np.real(v)
     print("DEBUG C")
     sorted_eig = list(zip(d, np.transpose(v)))
     sorted_eig.sort(key = lambda e:e[0])
     sorted_eig.reverse()
+    np.real(sorted_eig)
     print("DEBUG D")
+    print(sorted_eig)
     g = np.zeros(len(sorted_eig))
     for i in range(len(sorted_eig)):
-        g[i] = (sorted_eig[i])[1]
-        print(g)
+        g[i] = sorted_eig[i][1]
+    print(g)
+
+
+def conversion(num):
+    vec = np.zeros(10)
+    if num == 0:
+        vec[0] = 1
+    elif num == 1:
+        vec[1] = 1
+    elif num == 2:
+        vec[2] = 1
+    elif num == 3:
+        vec[3] = 1
+    elif num == 4:
+        vec[4] = 1
+    elif num == 5:
+        vec[5] = 1
+    elif num == 6:
+        vec[6] = 1
+    elif num == 7:
+        vec[7] = 1
+    elif num == 8:
+        vec[8] = 1
+    elif num == 9:
+        vec[9] = 1
+    #print("vec ", vec)
+    return vec
+
+
+
+def deconversion(vec):
+    num = 0
+    if vec[0] == 1:
+        num = 0
+    elif vec[1] == 1:
+        num = 1
+    elif vec[2] == 1:
+        num = 2
+    elif vec[3] == 1:
+        num = 3
+    elif vec[4] == 1:
+        num = 4
+    elif vec[5] == 1:
+        num = 5
+    elif vec[6] == 1:
+        num = 6
+    elif vec[7] == 1:
+        num = 7
+    elif vec[8] == 1:
+        num = 8
+    elif vec[9] == 1:
+        num = 9
+    #print("num ", num)
+    return num
+
 
 
 def digit_test():
     dataset = np.loadtxt("treino_full.csv", delimiter=',')
     X = np.round(dataset[:, 1:len(dataset[1])]/ 255)
-    pca(X)
+    #pca(X)
     aux = []
     for i in range(len(dataset[:, 0])):
-        aux2 = list(np.binary_repr(int(dataset[i, 0]), width = 4))
+        aux2 = list(conversion(int(dataset[i, 0])))
         aux2 = [int(j) for j in aux2]
         aux += [aux2]
     Y = np.matrix(aux)
@@ -142,11 +200,19 @@ def digit_test():
     print("X : ", X)
     print("Y : ", Y)
 
-    model = Arch(784, 100, 4)
-    model.backpropagation(X, Y, model, 0.05, 0.1)
+    model = Arch(784, 252, 10)
+    model.backpropagation(X, Y, model, 0.1, 0.1)
     #0.3 = 71%
     #0.25 = 77%
     #0.2 = 79%
+    # 100 hl
+
+    #0.3 = 77%
+    #0.2 = 81%
+    #0.1 = 87.7%
+    # 252 hl, calculado numero otimizado de neuronios
+
+    #todo: fazer uma funcao pro eta mudar de acordo com a convergencia
 
     b = 0
     test = np.round(np.loadtxt("teste_full.csv", delimiter=',') / 255)
@@ -155,8 +221,9 @@ def digit_test():
     test_fw = test[:, 1:test.shape[0]]
     for i in range(test.shape[0]):
         (_, _, net_i, _) = model.forward(test_fw[i])
-        num = np.round(net_i[3]) + (np.round(net_i[2])*2) + (np.round(net_i[1])*4) + (np.round(net_i[0])*8)
-        print(num, " -> ", test_result[i])
+        #print("net_i ", net_i)
+        num = deconversion(np.round(net_i))
+        #print(num, " -> ", test_result[i])
         if np.round(num) != test_result[i]:
             b +=1
 
