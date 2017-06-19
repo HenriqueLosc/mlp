@@ -185,7 +185,6 @@ def deconversion(vec):
     return num
 
 
-
 def digit_test():
     dataset = np.loadtxt("treino_full.csv", delimiter=',')
     X = np.round(dataset[:, 1:len(dataset[1])]/ 255)
@@ -233,8 +232,121 @@ def digit_test():
     print("Accuracy : ", 100 - ((b/test.shape[0]) * 100))
 
 
+def gender_num(gender):
+    if gender == "male":
+        return 1.0
+    else:
+        return 0.0
+
+
+def name_num(name):
+    name = str(name)
+    if ("Miss" in name or
+        "Mlle" in name or
+        "Ms" in name or
+        "Mrs" in name or
+        "Dona" in name or
+        "Lady" in name or
+        "the Countess" in name or
+        "Mme" in name):
+            return 0.0
+    elif "Mr" in name:
+        return 0.35
+    elif ("Dr" in name or
+        "Master" in name):
+        return 0.7
+    elif (
+	 "Rev" in name or
+	 "Capt" in name or
+	 "Col" in name or
+	 "Don" in name or
+	 "Major" in name or
+	 "Sir" in name or
+	 "Jonkheer" in name):
+        return  1.0
+
+
+def ticket_num(ticket):
+    return 1.0
+
+
+def cabin_num(cabin):
+    return 1.0
+
+
+def port_num(port):
+    if port == 'C':
+        return 1.0
+    if port == 'Q':
+        return 0.5
+    if port == 'S':
+        return 0.0
+
+def titanic():
+    dataset = np.loadtxt("t_treino.csv", delimiter=',',
+                         converters={3 : name_num,
+                                     4 : gender_num,
+                                     8 : ticket_num,
+                                     10 : cabin_num,
+                                     11 : port_num})
+    Y = dataset[:, 1] #survived ? 1 = yes : 0 = no
+
+    dataset[:,2] = (dataset[:, 2] / 3) #normalization of pclass
+
+    age = [(x / 100 if x != 0 else np.round(np.mean(dataset[:,5])) / 100) for x in dataset[:, 5]]
+    dataset[:, 5] = age #filling missing info and normalizing
+
+    fare = [(x / np.max(dataset[:,9]) if x != 0 else np.round(np.mean(dataset[:, 9])) / np.max(dataset[:,9])) for x in dataset[:, 5]]
+    dataset[:,9] = fare
+
+    print(fare)
+
+    # print(Y)
+    # print(dataset[:,2])
+    # print(dataset[:,5])
+    # print(dataset[:,3])
+    X = dataset[:, 2:11]
+
+    model = Arch(X.shape[1], 8, 1)
+    model.backpropagation(X, Y, model, 0.01, 0.2)
+
+
+
+    b = 0
+    test = np.loadtxt("t_teste.csv", skiprows=1, delimiter=',',
+                               converters={3 : name_num,
+                                     4 : gender_num,
+                                     8 : ticket_num,
+                                     10 : cabin_num,
+                                     11 : port_num})
+
+
+    age = [(x / 100 if x != 0 else np.round(np.mean(test[:, 5])) / 100) for x in test[:, 5]]
+    test[:, 5] = age  # filling missing info and normalizing
+    test[:, 2] = (test[:, 2] / 3)
+
+    fare = [x / np.max(test[:, 9]) for x in test[:, 9]]
+    test[:, 9] = fare
+
+    test_result = test[:, 1]
+    test_fw = test[:, 2:11]
+    for i in range(test.shape[0]):
+        (_, _, net_i, _) = model.forward(test_fw[i])
+        print("net_i ", net_i)
+        num = np.round(net_i)
+        print(num, " -> ", test_result[i])
+        if np.round(num) != test_result[i]:
+            b += 1
+
+    # a = np.sum(test_result)
+    print("Casos de teste : ", test.shape[0])
+    print("Numero de erros : ", b)
+    print("Accuracy : ", 100 - ((b / test.shape[0]) * 100))
+
+
+
 def main():
-    digit_test()
+    titanic()
 
 if __name__ == "__main__":
     main()
