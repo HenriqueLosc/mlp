@@ -99,39 +99,6 @@ def xor_test():
         print("Output: ",f_o_net_o_pk, "\n")
 
 
-def pca(x):
-    print("DEBUG A")
-    x = np.transpose(x)
-    mean_i = np.zeros(x.shape[0])
-    for i in range(x.shape[0]):
-        mean_i[i] = np.sum(x[i]) / x[i].shape[0]
-        #    mean_i = np.array([np.sum(col) / col.shape[0] for col in np.transpose(x)])
-        #    mean_i = np.reshape(mean_i, (mean_i.shape[0], 1))
-    x = np.transpose(x)
-    print(mean_i)
-    h = np.ones((x.shape[0], 1))
-    b = np.multiply(np.asmatrix(h), np.transpose(mean_i))
-    b = x - b
-    print(b.shape[0])
-    print(b.shape[1])
-    print("DEBUG B")
-    c = np.asmatrix(b) * np.transpose(np.asmatrix(b))
-    d, v = np.linalg.eig(c)
-    np.real(d)
-    np.real(v)
-    print("DEBUG C")
-    sorted_eig = list(zip(d, np.transpose(v)))
-    sorted_eig.sort(key = lambda e:e[0])
-    sorted_eig.reverse()
-    np.real(sorted_eig)
-    print("DEBUG D")
-    print(sorted_eig)
-    g = np.zeros(len(sorted_eig))
-    for i in range(len(sorted_eig)):
-        g[i] = sorted_eig[i][1]
-    print(g)
-
-
 def conversion(num):
     vec = np.zeros(10)
     if num == 0:
@@ -233,6 +200,7 @@ def digit_test():
 
 
 def gender_num(gender):
+    gender = gender.decode('ascii')
     if gender == "male":
         return 1.0
     else:
@@ -275,15 +243,17 @@ def cabin_num(cabin):
 
 
 def port_num(port):
+    port = port.decode('ascii')
     if port == 'C':
         return 1.0
     if port == 'Q':
         return 0.5
     if port == 'S':
         return 0.0
+    else: return 0
 
 def titanic():
-    dataset = np.loadtxt("t_treino.csv", delimiter=',',
+    dataset = np.loadtxt("train_titanic.csv", skiprows=1, delimiter=',',
                          converters={3 : name_num,
                                      4 : gender_num,
                                      8 : ticket_num,
@@ -299,54 +269,81 @@ def titanic():
     fare = [(x / np.max(dataset[:,9]) if x != 0 else np.round(np.mean(dataset[:, 9])) / np.max(dataset[:,9])) for x in dataset[:, 5]]
     dataset[:,9] = fare
 
-    print(fare)
+    family = dataset[:,6] + dataset[:,7] + 1
 
     # print(Y)
     # print(dataset[:,2])
     # print(dataset[:,5])
     # print(dataset[:,3])
     X = dataset[:, 2:11]
+    X[:,6] = family / np.max(family)
+    X[:,7] = dataset[:, 11]
+    np.delete(X, X[:,8])
+    np.delete(X, X[:, 7])
+    np.delete(X, X[:, 5])
+    # print(X[:,6])
+    # print(X[:,7])
+    # print(X)
+    # print("class : ", X[:, 0])
+    # print("name: ", X[:, 1])
+    # print("sex : ", X[:, 2])
+    # print("age : ", X[:, 3])
+    # print("f1 : ", X[:, 4])
+    # print("f2 : ", X[:, 5])
+    # print("ticket : ", X[:, 6])
+    # print("fare : ", X[:, 7])
+    # print("cabin : ", X[:, 8])
+    # print("port : ", X[:, 9])
 
-    model = Arch(X.shape[1], 8, 1)
-    model.backpropagation(X, Y, model, 0.01, 0.2)
+    model = Arch(X.shape[1], 5, 1)
+    model.backpropagation(X, Y, model, 0.4, 0.125)
 
 
 
     b = 0
-    test = np.loadtxt("t_teste.csv", skiprows=1, delimiter=',',
-                               converters={3 : name_num,
-                                     4 : gender_num,
-                                     8 : ticket_num,
-                                     10 : cabin_num,
-                                     11 : port_num})
+    test = np.loadtxt("test_titanic.csv", skiprows=1, delimiter=',',
+                      converters={2 : name_num,
+                                  3 : gender_num,
+                                  7 : ticket_num,
+                                  9 : cabin_num,
+                                  10 : port_num})
 
 
-    age = [(x / 100 if x != 0 else np.round(np.mean(test[:, 5])) / 100) for x in test[:, 5]]
-    test[:, 5] = age  # filling missing info and normalizing
-    test[:, 2] = (test[:, 2] / 3)
+    age = [(x / 100 if x != 0 else np.round(np.mean(test[:, 4])) / 100) for x in test[:, 4]]
+    test[:, 4] = age  # filling missing info and normalizing
+    test[:, 1] = (test[:, 1] / 3)
 
-    fare = [x / np.max(test[:, 9]) for x in test[:, 9]]
-    test[:, 9] = fare
+    fare = [x / np.max(test[:, 8]) for x in test[:, 8]]
+    test[:, 8] = fare
 
-    test_result = test[:, 1]
-    test_fw = test[:, 2:11]
+    #test_result = test[:, 1]
+    test_fw = test[:, 1:10]
+
+    family = test[:, 5] + test[:, 6] + 1
+
+    test_fw[:, 5] = family / np.max(family)
+    test_fw[:, 6] = test[:, 10]
+    np.delete(test_fw, test_fw[:, 7])
+    np.delete(test_fw, test_fw[:, 8])
+    np.delete(test_fw, test_fw[:, 4])
+
+    print("PassengerId,Survived")
     for i in range(test.shape[0]):
         (_, _, net_i, _) = model.forward(test_fw[i])
-        print("net_i ", net_i)
-        num = np.round(net_i)
-        print(num, " -> ", test_result[i])
-        if np.round(num) != test_result[i]:
-            b += 1
-
+        print(int(test[i,0]), ",", int(np.round(net_i)))
+        # num = np.round(net_i)
+        # #print(num, " -> ", test_result[i])
+        # if np.round(num) != test_result[i]:
+        #     b += 1
     # a = np.sum(test_result)
-    print("Casos de teste : ", test.shape[0])
-    print("Numero de erros : ", b)
-    print("Accuracy : ", 100 - ((b / test.shape[0]) * 100))
+    # print("Casos de teste : ", test.shape[0])
+    # print("Numero de erros : ", b)
+    # print("Accuracy : ", 100 - ((b / test.shape[0]) * 100))
 
 
 
 def main():
-    titanic()
+    digit_test()
 
 if __name__ == "__main__":
     main()
